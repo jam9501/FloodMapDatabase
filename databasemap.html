@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flood Risk and Insurance Data</title>
+    <style>
+        body {
+            font-family: 'Georgia', serif;
+            margin: 2in;
+        }
+
+        h2 {
+            font-family: 'Lato', sans-serif;
+            text-align: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        #searchBar {
+            margin-bottom: 20px;
+            padding: 10px;
+            width: 100%;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .pagination button {
+            padding: 5px 15px;
+            margin: 0 5px;
+            font-size: 14px;
+            cursor: pointer;
+            background-color: transparent;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .pagination button:hover {
+            background-color: #ddd;
+        }
+
+        .pagination button:disabled {
+            color: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <h2>Flood Risk and Insurance Data</h2>
+    
+    <input type="text" id="searchBar" onkeyup="searchTable()" placeholder="Search for municipalities...">
+
+    <table id="floodDataTable">
+        <thead>
+            <tr>
+                <th>Municipality</th>
+                <th>Median Current Cost of Insurance (in $)</th>
+                <th>Flood Risk</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+
+    <div class="pagination" id="pagination">
+    </div>
+
+    <script>
+        const originalData = [
+            ["Franklin Square", 756, "0.0%"],
+            ["Inwood", 988, "100.0%"],
+            ["Atlantic Beach", 1290, "99.9%"],
+            ["Baldwin", 1102, "96.5%"],
+            ["Cedarhurst", 1081, "92.5%"],
+            ["East Rockaway", 1109, "98.3%"],
+            ["Freeport", 1657, "98.8%"],
+            ["Garden City South", 664, "0.0%"],
+            ["Glen Cove", 852, "51.9%"],
+            ["Glen Head", 670, "0.0%"],
+            ["Greenvale", 690, "0.0%"],
+            ["South Hempstead", 709, "0.0%"],
+            ["West Hempstead", 756, "0.0%"],
+            ["Uniondale", 772, "0.0%"],
+            ["East Meadow", 616, "0.0%"],
+            ["Hewlett", 891, "87.7%"],
+            ["Island Park", 1159, "100.0%"],
+            ["Lawrence", 998, "90.6%"],
+            ["Locust Valley", 711, "33.3%"],
+            ["Long Beach", 1485, "100.0%"],
+            ["Lynbrook", 756, "54.1%"],
+            ["Malverne", 758, "0.0%"],
+            ["Merrick", 994, "97.0%"],
+            ["Westbury", 584, "0.0%"],
+            ["Point Lookout", 1286, "100.0%"],
+            ["Rockville Centre", 759, "30.9%"],
+            ["Oceanside", 1102, "99.7%"],
+            ["Roosevelt", 464, "0.0%"],
+            ["Roslyn", 617, "4.0%"],
+            ["Roslyn Heights", 645, "0.0%"],
+            ["Sea Cliff", 752, "51.9%"],
+            ["Valley Stream", 879, "63.5%"],
+            ["Williston Park", 658, "0.0%"],
+            ["Woodmere", 859, "95.0%"],
+            ["Far Rockaway", 1040, "97.1%"],
+            ["Arverne", 1282, "100.0%"],
+            ["Broad Channel", 943, "100.0%"],
+            ["Neponsit", 881, "100.0%"],
+            ["Rockaway Point", 981, "100.0%"],
+            ["Amity Harbor", 1219, "98.6%"],
+            ["Captree Island", 989, "99.2%"],
+            ["North Babylon", 761, "14.0%"],
+            ["West Babylon", 795, "70.1%"],
+            ["Cambria Heights", 878, "93.6%"],
+            ["Bay Shore", 1010, "93.9%"],
+            ["Bayville", 2132, "97.2%"],
+            ["Bellmore", 1078, "96.6%"],
+            ["Bellport", 869, "66.7%"],
+            ["Bethpage", 498, "0.0%"],
+            ["Elmont", 880, "95.7%"],
+            ["Bohemia", 541, "6.3%"],
+            ["Edgewood", 636, "0.0%"],
+            ["Brightwaters", 798, "79.9%"],
+            ["Brookhaven", 885, "95.3%"],
+            ["South Setauket", 754, "0.0%"],
+            ["Centerport", 778, "61.4%"],
+            ["Central Islip", 626, "0.0%"],
+            ["Cold Spring Harbor", 694, "12.9%"],
+            ["Commack", 507, "0.0%"],
+            ["Copiague", 828, "98.6%"],
+            ["Coram", 688, "0.0%"],
+            ["Amityville", 1157, "89.5%"],
+            ["Deer Park", 684, "0.0%"],
+            ["Oyster Bay", 874, "55.7%"],
+            ["Seaford", 1016, "97.6%"],
+            ["Wantagh", 881, "87.4%"]
+        ];
+
+        let filteredData = [...originalData];
+        const rowsPerPage = 10;
+        let currentPage = 1;
+
+        function displayTable(page) {
+            const tableBody = document.getElementById('floodDataTable').getElementsByTagName('tbody')[0];
+            tableBody.innerHTML = ''; 
+            const startIndex = (page - 1) * rowsPerPage;
+            const endIndex = Math.min(startIndex + rowsPerPage, filteredData.length);
+
+            for (let i = startIndex; i < endIndex; i++) {
+                const row = tableBody.insertRow();
+                row.insertCell(0).textContent = filteredData[i][0];
+                row.insertCell(1).textContent = filteredData[i][1];
+                row.insertCell(2).textContent = filteredData[i][2];
+            }
+
+            updatePagination(page);
+        }
+
+        function updatePagination(page) {
+            const pagination = document.getElementById('pagination');
+            const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+            pagination.innerHTML = ''; 
+
+            const prevButton = document.createElement('button');
+            prevButton.textContent = 'Previous';
+            prevButton.disabled = page === 1;
+            prevButton.onclick = function() {
+                if (page > 1) {
+                    displayTable(page - 1);
+                }
+            };
+            pagination.appendChild(prevButton);
+
+            const nextButton = document.createElement('button');
+            nextButton.textContent = 'Next';
+            nextButton.disabled = page === totalPages;
+            nextButton.onclick = function() {
+                if (page < totalPages) {
+                    displayTable(page + 1);
+                }
+            };
+            pagination.appendChild(nextButton);
+        }
+
+        function searchTable() {
+            const input = document.getElementById('searchBar');
+            const filter = input.value.toLowerCase();
+            filteredData = originalData.filter(row => row[0].toLowerCase().includes(filter));
+
+            currentPage = 1; 
+            displayTable(currentPage);
+        }
+
+        displayTable(currentPage);
+    </script>
+</body>
+</html>
